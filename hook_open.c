@@ -98,6 +98,10 @@ static int get_file_cwd(char *str,int fd,const char *filename,int *check)
     }
 
 	fe = current->files->fdt->fd[fd];
+	if (fe == NULL) {
+		sprintf(str,"%s filepath : %s",str,filename);
+		goto end;
+	}
 	ppath = d_path(&fe->f_path, ppath, 128);
 	sprintf(str,"%s filepath : %s",str,ppath);
 	*check = check_open(ppath);
@@ -143,8 +147,8 @@ static asmlinkage long hook_open(const char __user * filename, int flags, unsign
 
 	if (check == -NOOPEN) {
 		if(fd >= 0) {
-			if (srctable(&hook_dev->hctx) == 0) {
-				printk("sys %lx\n",(unsigned long)(systable(&hook_dev->hctx)[__NR_close]));
+			if (srctable(&hook_dev->hctx)[__NR_close] == 0) {
+				printk("sys %lx sysnum %d\n",(unsigned long)(systable(&hook_dev->hctx)[__NR_close]),__NR_close);
 				((type_close)(systable(&hook_dev->hctx)[__NR_close]))(fd);
 			} else {
 				printk("src %lx\n",(unsigned long)(srctable(&hook_dev->hctx)[__NR_close]));
