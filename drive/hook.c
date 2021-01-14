@@ -10,9 +10,6 @@ MODULE_DESCRIPTION("hook sys_open");
 
 struct hook_data *hook_dev;
 
-#include "messagepro.h"
-#include "ngx_queue.h"
-
 static int queue_clean(ngx_queue_t *queue,clean_fun f)
 {
     ngx_queue_t  *q, *next;
@@ -27,7 +24,6 @@ static int queue_clean(ngx_queue_t *queue,clean_fun f)
     }
 	//遍历节点
     for (q = ngx_queue_head(queue); q != ngx_queue_sentinel(queue); q = next) {
-
         next = ngx_queue_next(q);
 		//删除当前遍历的节点
         ngx_queue_remove(q);
@@ -64,7 +60,6 @@ static int obtain_sys_call_table_addr(void **sys_call_table_addr)
 
 static int init_hook_init(struct hook_ctx *ctx)
 {
-
 	if (ctx == NULL) {
 		return -1;
 	}

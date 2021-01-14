@@ -38,18 +38,6 @@ int main(int argc,char *argv[])
 		return -1;
 	}
 
-#if 0
-	memset(pro,0,MESSLEN);
-	pro->type = PROREWRITE;
-	prorewrite(pro)->enter = 1;
-	memcpy(prorewrite(pro)->srcip,BAIDU,IPLEN);
-	memcpy(prorewrite(pro)->objip,XINLANG,IPLEN);
-	ret = write(fd,pro,MESSLEN);
-	if(ret < 0){
-		printf("hook function error\n");
-		return -1;
-	}
-#endif
 	char buf[1024] = {0};
 	int n = 0;
 	

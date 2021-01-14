@@ -1,6 +1,15 @@
 #ifndef __REQUEST_H__
 #define __REQUEST_H__
 
+#include "messagepro.h"
+
+struct ippair
+{
+    char srcip[IPLEN];
+    char objip[IPLEN];
+};
+
+
 int login(int fd,const char *user,const char *passwd);
 
 int hook_function(int fd,int sysnum,int ishook);
