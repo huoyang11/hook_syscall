@@ -93,6 +93,7 @@ struct hook_ctx
 	void **sys_call_table_addr; //system call addr
 };
 
+typedef int (*clean_fun)(ngx_queue_t*);
 
 struct hook_data
 {

@@ -18,7 +18,7 @@ static int get_log_time(char *str)
 	do_gettimeofday(&(txc.time));//当前时间
 	rtc_time_to_tm(txc.time.tv_sec,&tm);
 
-	sprintf(str,"UTC time :%d-%02d-%02d %02d:%02d:%02d",tm.tm_year+1900,tm.tm_mon, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+	sprintf(str,"UTC time :%d-%02d-%02d %02d:%02d:%02d",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
 
 	return 0;
 }
@@ -169,7 +169,8 @@ end:
 	
 #if 1
 	if (fd < 0) {
-		return ((type_open)(srctable(&hook_dev->hctx)[__NR_open]))(filename,flags,mode);
+		return srctbcall(&hook_dev->hctx,type_open,__NR_open)(filename,flags,mode);
+		//return ((type_open)(srctable(&hook_dev->hctx)[__NR_open]))(filename,flags,mode);
 	} else {
 		return fd;
 	}

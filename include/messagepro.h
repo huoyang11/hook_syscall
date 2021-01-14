@@ -15,7 +15,6 @@
 #define PASSWDLEN	10
 
 struct message_login{
-	int islog;
 	char user[USERLEN];
 	char passwd[PASSWDLEN];
 };
