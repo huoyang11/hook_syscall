@@ -1,12 +1,12 @@
 SRC := $(wildcard *.c)
 OBJ := $(patsubst %.c,%.o,$(SRC))
 TARGET := hook_app
-DIR := /home/yh/hook_syscall
+DIR := $(PWD)/../
 CFLAGS := -g
 CC     := gcc
-INCLUDE := $(DIR)/include
+INCLUDE := $(DIR)include
 LIB	    := -llua -lm -ldl
-BIN		:= $(DIR)/bin
+BIN		:= $(DIR)bin
 
 all:$(TARGET)
 

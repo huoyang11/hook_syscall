@@ -1,5 +1,5 @@
 TARGET := build
-DIR := /home/yh/hook_syscall
+DIR := $(PWD)
 
 all:$(TARGET)
 

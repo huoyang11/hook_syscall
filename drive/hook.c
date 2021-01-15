@@ -421,7 +421,7 @@ static int hooked_init(void) {
 	
 	hook_dev = kmalloc(sizeof(struct hook_data), GFP_KERNEL);
 	memset(hook_dev ,0,sizeof(struct hook_data));
-	if(hook_dev == NULL){
+	if (hook_dev == NULL) {
 		printk("kalloc error\n");
 		ret = -ENOMEM;
 		goto err_ret;

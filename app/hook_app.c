@@ -37,11 +37,21 @@ int main(int argc,char *argv[])
 		printf("load config error\n");
 		return -1;
 	}
+#if 0
+	if (disrewrite(fd,"192.168.177.128","192.168.177.129",1) != 0) {
+		printf("load config error\n");
+		return -1;
+	}
 
+	if (disrewrite(fd,"14.215.177.39",XINLANG,1) != 0) {
+		printf("load config error\n");
+		return -1;
+	}
+#endif
 	char buf[1024] = {0};
 	int n = 0;
 	
-	for (i = 0;i < LOOPNUM;i++) {
+	for (;;) {
 		n = read(fd,buf,1024);
 		printf(">%s\n",buf);
 		if(n < 0) {

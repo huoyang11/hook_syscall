@@ -16,6 +16,8 @@ int hook_function(int fd,int sysnum,int ishook);
 
 int dispath(int fd,const char *path,int isenter);
 
+int disrewrite(int fd,const char *srcip,const char *objip,int isenter);
+
 int hook_funs(int fd,int ishook,...);
 
 int dispaths(int fd,int isenter,...);

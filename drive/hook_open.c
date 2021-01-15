@@ -103,7 +103,7 @@ static int get_file_cwd(char *str,int fd,const char *filename,int *check)
 		sprintf(str,"%s filepath : %s",str,filename);
 		goto end;
 	}
-	ppath = d_path(&fe->f_path, ppath, 128);
+	ppath = d_path(&fe->f_path, ppath, PATHMAX);
 	sprintf(str,"%s filepath : %s",str,ppath);
 	*check = check_open(ppath);
 	//path_put(&fe->f_path);

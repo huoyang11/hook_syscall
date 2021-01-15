@@ -5,7 +5,7 @@
 
 char *addr_ntoa(struct in_addr ina)
 {
-	static char buf[4*sizeof "123"];
+	static char buf[IPLEN];
 	unsigned char *ucp = (unsigned char *)&ina;
 
 	sprintf(buf, "%d.%d.%d.%d",
@@ -53,14 +53,45 @@ int inet_pton(const char *src, const char *end, unsigned char *dst)
     return 1;
 }
 
+static int get_task_path(void)
+{
+	char *ptr;
+	int err;
+	char link[100], buf[256];
+	struct path path;
+
+	sprintf(link, "/proc/%d/exe", current->pid);
+ 
+	err = kern_path(link, LOOKUP_FOLLOW, &path);
+	if ( !err )    
+	{   
+    	ptr = d_path(&path, buf, 256);      
+    	if (IS_ERR(ptr)) {
+			printk("task path error\n");
+	    	return -1;
+		}
+		printk("process:%s -> pid:%d ",ptr,current->pid);
+    	path_put(&path);
+	}
+
+	return 0;
+}
+
 
 int hook_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
 {
 	ngx_queue_t *q = NULL;
+	unsigned int port = 0;
+	unsigned int family = 0;
 	unsigned int iaddr = 0;
 	struct listen_addr *lpa = NULL;
+	char* str_ptr = NULL;
+	struct sockaddr_in *sr = (struct sockaddr_in *)uservaddr;
 	struct sockaddr_in *saddr = kmalloc(sizeof(struct sockaddr_in),GFP_KERNEL);
-	char* str_ptr = addr_ntoa(((struct sockaddr_in *)uservaddr)->sin_addr);	
+
+	str_ptr = addr_ntoa(((struct sockaddr_in *)uservaddr)->sin_addr);	
+	port = ntohs(sr->sin_port);
+	family = sr->sin_family;
 	
 	q = &hook_dev->addrs;
 	for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->addrs);q = ngx_queue_next(q)) {
@@ -75,15 +106,24 @@ int hook_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
 
 			memcpy(saddr,uservaddr,addrlen);
 			saddr->sin_addr = *((struct in_addr*)&iaddr);
+
+			get_task_path();
+			printk("src:%s family %u port:%u\n",str_ptr,family,port);
 			
 			if (copy_to_user(uservaddr,saddr,addrlen)) {
 				printk("connect copy error\n");
 				goto end;
 			}
 
+			str_ptr = addr_ntoa(((struct sockaddr_in *)uservaddr)->sin_addr);	
+			printk("too:%s family %u port:%u\n",str_ptr,family,port);
 			kfree(saddr);
-			str_ptr = addr_ntoa(((struct sockaddr_in *)uservaddr)->sin_addr);
-			printk("obj:%s port:%d\n",str_ptr,ntohs(((struct sockaddr_in *)uservaddr)->sin_port));
+			//str_ptr = addr_ntoa(((struct sockaddr_in *)uservaddr)->sin_addr);
+			//printk("obj:%s port:%d\n",str_ptr,((struct sockaddr_in *)uservaddr)->sin_port);
+		}
+
+		if(port == 443) {
+			printk("-----src:%s family %u port:%u----------\n",str_ptr,family,port);
 		}
 	} 
 

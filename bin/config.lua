@@ -333,10 +333,11 @@ hook_functions = {
 }
 
 paths = {
-	"/home/yh/hook_syscall/hook.c",
-	"/home/yh/Public"}
+	"/home/yh/hook.c",
+	"/home/yh/Public"
+}
 
 rewrites = {
-
-	
+	{"192.168.177.128","192.168.177.129"},
+	{"11.168.177.128","22.168.177.129"},
 }
