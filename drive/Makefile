@@ -2,7 +2,7 @@ TARGET := hook_function
 DIR := $(PWD)/../
 ccflags-y := -I$(DIR)include 
 obj-m:=$(TARGET).o
-$(TARGET)-objs = module.o hook.o hook_open.o hook_connect.o
+$(TARGET)-objs = module.o hook.o hook_open.o hook_connect.o drivelog.o
 KDIR:=/lib/modules/$(shell uname -r)/build
 
 all:

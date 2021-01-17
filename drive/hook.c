@@ -200,25 +200,50 @@ static int do_path(struct message_path *path)
 			return -1;
 		}
 		
-		memcpy(lpa->path,path->path,PATHMAX);
-		printk("%s %s\n",lpa->path,path->path);
-		ngx_queue_insert_head(&hook_dev->paths, &lpa->queue_node);
-	} else {
-		q = &hook_dev->paths;
-		for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->paths);q = ngx_queue_next(q)) {
-			lpa = ngx_queue_data(q, struct listen_path, queue_node);
-			if(strcmp(path->path,lpa->path) == 0) {
-				break;
-			}
-		} 
-		
-		if (q == ngx_queue_sentinel(&hook_dev->paths)) {
-			printk("no path\n");
-			return 0;
+		if (path->iskeyword) {
+			memcpy(lpa->path,path->path,PATHMAX);
+			printk("keyword %s %s\n",lpa->path,path->path);
+			ngx_queue_insert_head(&hook_dev->keywords, &lpa->queue_node);
+ 		} else {
+			memcpy(lpa->path,path->path,PATHMAX);
+			printk("%s %s\n",lpa->path,path->path);
+			ngx_queue_insert_head(&hook_dev->paths, &lpa->queue_node);	 
 		}
 
-		printk("delete path : %s\n",lpa->path);
-		ngx_queue_remove(&lpa->queue_node);
+	} else {
+		if (path->iskeyword) {
+			q = &hook_dev->paths;
+			for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->paths);q = ngx_queue_next(q)) {
+				lpa = ngx_queue_data(q, struct listen_path, queue_node);
+				if(strcmp(path->path,lpa->path) == 0) {
+					break;
+				}
+			} 
+			
+			if (q == ngx_queue_sentinel(&hook_dev->paths)) {
+				printk("no path\n");
+				return 0;
+			}
+
+			printk("delete path : %s\n",lpa->path);
+			ngx_queue_remove(&lpa->queue_node);
+		} else {
+			q = &hook_dev->keywords;
+			for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->keywords);q = ngx_queue_next(q)) {
+				lpa = ngx_queue_data(q, struct listen_path, queue_node);
+				if(strcmp(path->path,lpa->path) == 0) {
+					break;
+				}
+			} 
+			
+			if (q == ngx_queue_sentinel(&hook_dev->keywords)) {
+				printk("no keyword\n");
+				return 0;
+			}
+			printk("delete keyword : %s\n",lpa->path);
+			ngx_queue_remove(&lpa->queue_node);
+		}
+		
 		kfree(lpa);
 	}
 
@@ -294,7 +319,7 @@ static ssize_t hooked_read(struct file *filp, char __user *buffer, size_t size, 
 {
 	int ret = 0;
 	ngx_queue_t *q = NULL;
-	struct listen_path *ppath = NULL;
+	struct log_data *plog = NULL;
 
 	if (ngx_queue_empty(&hook_dev->logs)) {
 		if (filp->f_flags & O_NONBLOCK) return -EAGAIN;
@@ -309,16 +334,16 @@ static ssize_t hooked_read(struct file *filp, char __user *buffer, size_t size, 
 	spin_lock(&hook_dev->hook_lock);
 	q = ngx_queue_last(&hook_dev->logs);
 	spin_unlock(&hook_dev->hook_lock);
-	ppath = ngx_queue_data(q, struct listen_path, queue_node);
+	plog = ngx_queue_data(q, struct log_data, queue_node);
 	
-	if (copy_to_user(buffer, ppath->path, PATHMAX)) {
+	if (copy_to_user(buffer, plog->addr, LOGMAX)) {
 		ret = -EFAULT;
 	} else {
 		ret = PATHMAX;
 		spin_lock(&hook_dev->hook_lock);
 		ngx_queue_remove(q);
 		spin_unlock(&hook_dev->hook_lock);
-		kfree(ppath);
+		kfree(plog);
 	}
 
 	return ret;

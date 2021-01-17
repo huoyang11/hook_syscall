@@ -27,9 +27,10 @@ struct message_hook{
 #define PATHMAX		512
 
 struct message_path{
-	unsigned int isdis:1;
 	unsigned int isfile:1;
+	unsigned int isdis:1;
 	unsigned int isenter:1;
+	unsigned int iskeyword:1;
 	char path[PATHMAX];
 };
 
