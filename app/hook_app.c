@@ -18,6 +18,8 @@
 #define BAIDU			"14.215.177.38"
 #define XINLANG			"183.60.208.224"
 
+#define KEYWORD			"1111122223"
+
 int main(int argc,char *argv[])
 {
 	int i = 0;
@@ -38,13 +40,8 @@ int main(int argc,char *argv[])
 		return -1;
 	}
 #if 0
-	if (disrewrite(fd,"192.168.177.128","192.168.177.129",1) != 0) {
-		printf("load config error\n");
-		return -1;
-	}
-
-	if (disrewrite(fd,"14.215.177.39",XINLANG,1) != 0) {
-		printf("load config error\n");
+	if (addkeyword(fd,KEYWORD,1)) {
+		printf("addkeyword error\n");
 		return -1;
 	}
 #endif

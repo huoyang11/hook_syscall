@@ -201,9 +201,11 @@ static int do_path(struct message_path *path)
 		}
 		
 		if (path->iskeyword) {
+			hook_dev->iskeymod = 1;
 			memcpy(lpa->path,path->path,PATHMAX);
 			printk("keyword %s %s\n",lpa->path,path->path);
 			ngx_queue_insert_head(&hook_dev->keywords, &lpa->queue_node);
+			printk("add keyword end\n");
  		} else {
 			memcpy(lpa->path,path->path,PATHMAX);
 			printk("%s %s\n",lpa->path,path->path);
@@ -422,12 +424,27 @@ static int clean_logs(ngx_queue_t *q)
 	return 0;
 }
 
+static int clean_keywords(ngx_queue_t *q)
+{
+	struct listen_path *la = ngx_queue_data(q,struct listen_path,queue_node);
+	if (la == NULL) {
+		printk("keyword = null %s -> %s",__FILE__,__FUNCTION__);
+		return -1;
+	}
+
+	printk("remove keyword %s\n",la->path);
+	kfree(la);
+
+	return 0;
+}
+
 static int hooked_close(struct inode *inode, struct file *filp)
 {
 	uninit_hook_init(&hook_dev->hctx);
 	queue_clean(&hook_dev->paths,clean_paths);
 	queue_clean(&hook_dev->addrs,clean_addrs);
 	queue_clean(&hook_dev->logs ,clean_logs);
+	queue_clean(&hook_dev->keywords ,clean_keywords);
 
 	return 0;
 }
@@ -479,6 +496,7 @@ static int hooked_init(void) {
 	ngx_queue_init(&hook_dev->paths);
 	ngx_queue_init(&hook_dev->addrs);
 	ngx_queue_init(&hook_dev->logs);
+	ngx_queue_init(&hook_dev->keywords);
 	//初始化锁
 	spin_lock_init(&hook_dev->hook_lock);
 

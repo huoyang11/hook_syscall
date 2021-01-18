@@ -104,7 +104,8 @@ struct hook_data
 
 	wait_queue_head_t inq;
 	
-	int islogin;
+	unsigned int islogin:1;
+	unsigned int iskeymod:1;
 	ngx_queue_t paths;
 	ngx_queue_t keywords;
 	ngx_queue_t addrs;

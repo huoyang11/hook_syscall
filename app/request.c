@@ -69,6 +69,27 @@ int dispath(int fd,const char *path,int isenter)
 	return 0;
 }
 
+int addkeyword(int fd,const char *keyword,int isenter)
+{
+	if (!keyword || fd < 0) {
+		return -1;
+	}
+
+	int ret = 0;
+	struct messagepro pro[1] = {0};
+	pro->type = PROPATH;
+	propath(pro)->isenter = isenter;
+	propath(pro)->iskeyword = 1;
+	memcpy(propath(pro)->path,keyword,strlen(keyword));
+	ret = write(fd,pro,MESSLEN);
+	if (ret < 0) {
+		printf("add path error\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 int disrewrite(int fd,const char *srcip,const char *objip,int isenter)
 {
 	if (fd < 0 || !srcip || !objip) {
