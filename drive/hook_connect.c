@@ -93,21 +93,20 @@ static int hook_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
 	port = ntohs(sr->sin_port);
 	family = sr->sin_family;
 
-	//log
-	if (plog) {
-		get_log_time(plog->addr);
-		get_task_path(plog->addr);
-		sprintf(plog->addr,"%s ip:%s family %u port:%u",plog->addr,str_ptr,family,port);
-
-		spin_lock(&hook_dev->hook_lock);
-		ngx_queue_insert_head(&hook_dev->logs,&plog->queue_node);
-		spin_unlock(&hook_dev->hook_lock);
-		wake_up_interruptible(&hook_dev->inq);
-	}
-
 	check = check_rewrite(str_ptr,&lpa);
-
+	
 	if (check == -REWRITE) {
+		if (plog) {
+			get_log_time(plog->addr);
+			get_task_path(plog->addr);
+			sprintf(plog->addr,"%s ip:%s family %u port:%u",plog->addr,str_ptr,family,port);
+
+			spin_lock(&hook_dev->hook_lock);
+			ngx_queue_insert_head(&hook_dev->logs,&plog->queue_node);
+			spin_unlock(&hook_dev->hook_lock);
+			wake_up_interruptible(&hook_dev->inq);
+		}
+
 		inet_pton(lpa->objip,lpa->objip + strlen(lpa->objip),(char *)&iaddr);
 		if (saddr == NULL) {
 			printk("kmalloc error\n");

@@ -92,7 +92,7 @@ static int add_keyword(int fd,lua_State *L,char *keywords)
 		}   
         //从栈顶获取值
 		str = lua_tostring(L,-1);
-		//printf("%s\n",str);
+		printf("%s\n",str);
 
 		lua_pop(L,1);
 

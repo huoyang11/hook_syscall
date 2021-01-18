@@ -13,18 +13,15 @@
 #define HOOK_USER		"yh"
 #define HOOK_PASSWD		"123456"
 
-#define LOOPNUM			2000
+int fd = 0;
 
-#define BAIDU			"14.215.177.38"
-#define XINLANG			"183.60.208.224"
-
-#define KEYWORD			"1111122223"
-
-int main(int argc,char *argv[])
+int drive_run(const char *config)
 {
-	int i = 0;
-	
-	int fd = open("/dev/hook",O_RDWR);
+	if (!config) {
+		return -1;
+	}
+
+	fd = open("/dev/hook",O_RDWR);
 	if(fd == -1){
 		perror("open dev error");
 		return -1;
@@ -35,26 +32,31 @@ int main(int argc,char *argv[])
 		return -1;
 	}
 
-	if (load_config(fd,"./config.lua") != 0) {
+	if (load_config(fd,config) != 0) {
 		printf("load config error\n");
 		return -1;
 	}
-#if 0
-	if (addkeyword(fd,KEYWORD,1)) {
-		printf("addkeyword error\n");
-		return -1;
-	}
-#endif
+
+	return 0;
+}
+
+int rerun()
+{
+	close(fd);
+	drive_run("./config.lua");
+}
+
+int main(int argc,char *argv[])
+{
+	int i = 0;
 	char buf[1024] = {0};
 	int n = 0;
 	
+	drive_run("./config.lua");
+
 	for (;;) {
 		n = read(fd,buf,1024);
 		printf(">%s\n",buf);
-		if(n < 0) {
-			perror("read");
-			break;
-		}
 	}
 
 	close(fd);

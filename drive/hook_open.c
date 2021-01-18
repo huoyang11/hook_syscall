@@ -103,7 +103,7 @@ static int check_open(long fd,char *file_path)
 
 	fp = filp_open(file_path, O_RDWR, 0666);
 	if (IS_ERR(fp)) {
-        printk("keyword open file error\n");
+        //printk("keyword open file error\n");
         goto end;
     }
 	//printk("keyword open %s\n",file_path);
@@ -123,11 +123,11 @@ static int check_open(long fd,char *file_path)
 		//printk("test %s key %s idx %d\n",buf,lpa->path,idx);
 		if (idx < 0 || idx > strlen(buf)) {
 			ret = 0;
-			goto end;
+			continue;
 		}
 		//printk("%s\n",file_path);
 		ret = -NOOPEN;
-		goto end;
+		break;
 	}
 
 #endif
@@ -179,26 +179,19 @@ static asmlinkage long hook_open(const char __user * filename, int flags, unsign
 	memset(plog,0,sizeof(struct log_data));
 
 	get_file_cwd(path,fd,filename);
-
-	if (plog) {
-		get_log_time(plog->addr);
-		get_task_path(plog->addr);
-		sprintf(plog->addr,"%s filepath: %s",plog->addr,path);
-
-		spin_lock(&hook_dev->hook_lock);
-		ngx_queue_insert_head(&hook_dev->logs,&plog->queue_node);
-		spin_unlock(&hook_dev->hook_lock);
-		wake_up_interruptible(&hook_dev->inq);
-	}	
-
 	check = check_open(fd,path);
-#if 0
-	fd = srctbcall(&hook_dev->hctx,type_open,__NR_open)(filename,flags,mode);
-	if (fd < 0) {
-		goto end;
-	}
-#endif
+
 	if (check == -NOOPEN) {
+		if (plog) {
+			get_log_time(plog->addr);
+			get_task_path(plog->addr);
+			sprintf(plog->addr,"%s filepath: %s",plog->addr,path);
+
+			spin_lock(&hook_dev->hook_lock);
+			ngx_queue_insert_head(&hook_dev->logs,&plog->queue_node);
+			spin_unlock(&hook_dev->hook_lock);
+			wake_up_interruptible(&hook_dev->inq);
+		}
 		close_fd(fd);
 		return -1;
 	}
