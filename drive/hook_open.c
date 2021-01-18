@@ -91,6 +91,7 @@ static int check_open(long fd,char *file_path)
 	for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->paths);q = ngx_queue_next(q)) {
 		lpa = ngx_queue_data(q, struct listen_path, queue_node);
 		if(strstr(file_path,lpa->path) == file_path) {
+			//printk("cmp %s\n",file_path);
 			ret = -NOOPEN;
 			goto end;
 		}
@@ -121,11 +122,11 @@ static int check_open(long fd,char *file_path)
 		lpa = ngx_queue_data(q, struct listen_path, queue_node);
 		idx = kmp(buf, lpa->path, next);
 		//printk("test %s key %s idx %d\n",buf,lpa->path,idx);
-		if (idx < 0 || idx > strlen(buf)) {
+		if (idx < 0 || idx > strlen(buf) - strlen(lpa->path)) {
 			ret = 0;
 			continue;
 		}
-		//printk("%s\n",file_path);
+		//printk("keyword %c%c\n",buf[idx],buf[idx+1]);
 		ret = -NOOPEN;
 		break;
 	}

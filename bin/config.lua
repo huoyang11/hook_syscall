@@ -324,7 +324,7 @@ syscallnums = {
 		__NR_execveat 				=322,
 		__NR_userfaultfd 			=323,
 		__NR_membarrier 			=324,
-		__NR_mlock2 				=325 
+		__NR_mlock2 				=325
 }
 
 hook_functions = {
@@ -333,8 +333,9 @@ hook_functions = {
 }
 
 paths = {
-	"/home/yh/hook.c",
-	"/home/yh/Public"
+	"/home/yh/test/c",
+	"/home/yh/test/d",
+	"/home/yh/Public",
 }
 
 keywords = {
