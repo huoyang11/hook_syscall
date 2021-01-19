@@ -55,8 +55,9 @@ int main(int argc,char *argv[])
 	drive_run("./config.lua");
 
 	for (;;) {
-		n = read(fd,buf,1024);
+		n = read(fd,buf,sizeof(buf) - 1);
 		printf(">%s\n",buf);
+		memset(buf,0,sizeof(buf));
 	}
 
 	close(fd);

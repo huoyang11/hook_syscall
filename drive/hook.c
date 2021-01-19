@@ -252,41 +252,68 @@ static int do_path(struct message_path *path)
 	return 0;
 }
 
-static int do_rewrite(struct message_rewrite *rewrite){
+static int do_domain(struct message_domain *domain){
 	struct listen_addr *la = NULL;
 	ngx_queue_t *q = NULL;
 
-	if (!rewrite) {
+	if (!domain) {
 		return -1;
 	}
 
-	if (rewrite->enter) {
+	if (domain->enter) {
 		la = kmalloc(sizeof(struct listen_addr), GFP_KERNEL);
 		if (la == NULL) {
 			printk("kmalloc error\n");
 			return -1;
 		}
 
-		memcpy(la->srcip,rewrite->srcip,IPLEN);
-		memcpy(la->objip,rewrite->objip,IPLEN);
-		ngx_queue_insert_head(&hook_dev->addrs, &la->queue_node);
-	} else {
-		q = &hook_dev->addrs;
-		for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->addrs);q = ngx_queue_next(q)) {
-			la = ngx_queue_data(q, struct listen_addr, queue_node);
-			if(strcmp(rewrite->srcip,la->srcip) == 0) {
-				break;
-			}
-		} 
-		
-		if (q == ngx_queue_sentinel(&hook_dev->addrs)) {
-			printk("no rewrite\n");
-			return 0;
+		if (domain->rewrite) {
+			memcpy(la->srcip,domain->srcip,IPLEN);
+			memcpy(la->objip,domain->objip,IPLEN);
+			//printk("%s ->>  %s\n",la->srcip,la->objip);
+			ngx_queue_insert_head(&hook_dev->addrs, &la->queue_node);
+		} else if (domain->ban) {
+			memcpy(la->srcip,domain->srcip,IPLEN);
+			//printk("ban ip %s\n",la->srcip);
+			ngx_queue_insert_head(&hook_dev->bans, &la->queue_node);
 		}
+		
+	} else {
+		if (domain->rewrite) {
+			q = &hook_dev->addrs;
+			for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->addrs);q = ngx_queue_next(q)) {
+				la = ngx_queue_data(q, struct listen_addr, queue_node);
+				if(strcmp(domain->srcip,la->srcip) == 0) {
+					break;
+				}
+			} 
+			
+			if (q == ngx_queue_sentinel(&hook_dev->addrs)) {
+				printk("no rewrite\n");
+				return 0;
+			}
 
-		printk("delete srcip : %s\n",la->srcip);
-		ngx_queue_remove(&la->queue_node);
-		kfree(la);
+			printk("delete srcip : %s\n",la->srcip);
+			ngx_queue_remove(&la->queue_node);
+			kfree(la);
+		} else if (domain->ban) {
+			q = &hook_dev->bans;
+			for (q = ngx_queue_next(q);q != ngx_queue_sentinel(&hook_dev->bans);q = ngx_queue_next(q)) {
+				la = ngx_queue_data(q, struct listen_addr, queue_node);
+				if(strcmp(domain->srcip,la->srcip) == 0) {
+					break;
+				}
+			} 
+			
+			if (q == ngx_queue_sentinel(&hook_dev->bans)) {
+				printk("no bans\n");
+				return 0;
+			}
+
+			printk("delete ban ip : %s\n",la->srcip);
+			ngx_queue_remove(&la->queue_node);
+			kfree(la);
+		}
 	}
 	return 0;
 }
@@ -303,8 +330,8 @@ static int message_parse(struct messagepro *pro)
 		do_hook(prohook(pro));
 	} else if(ispath(pro)) {
 		do_path(propath(pro));
-	} else if(isrewrite(pro)) {
-		do_rewrite(prorewrite(pro));
+	} else if(isdomain(pro)) {
+		do_domain(prodomain(pro));
 	}
 
 	return 0;
@@ -418,7 +445,21 @@ static int clean_logs(ngx_queue_t *q)
 		return -1;
 	}
 
-	printk("remove %s\n",la->addr);
+	printk("remove rewrite %s\n",la->addr);
+	kfree(la);
+
+	return 0;
+}
+
+static int clean_bans(ngx_queue_t *q)
+{
+	struct listen_addr *la = ngx_queue_data(q,struct listen_addr,queue_node);
+	if (la == NULL) {
+		printk("data = null %s -> %s",__FILE__,__FUNCTION__);
+		return -1;
+	}
+
+	printk("remove ban ip %s\n",la->srcip);
 	kfree(la);
 
 	return 0;
@@ -445,6 +486,7 @@ static int hooked_close(struct inode *inode, struct file *filp)
 	queue_clean(&hook_dev->addrs,clean_addrs);
 	queue_clean(&hook_dev->logs ,clean_logs);
 	queue_clean(&hook_dev->keywords ,clean_keywords);
+	queue_clean(&hook_dev->bans ,clean_bans);
 
 	return 0;
 }
@@ -497,6 +539,7 @@ static int hooked_init(void) {
 	ngx_queue_init(&hook_dev->addrs);
 	ngx_queue_init(&hook_dev->logs);
 	ngx_queue_init(&hook_dev->keywords);
+	ngx_queue_init(&hook_dev->bans);
 	//初始化锁
 	spin_lock_init(&hook_dev->hook_lock);
 

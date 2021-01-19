@@ -98,13 +98,35 @@ int disrewrite(int fd,const char *srcip,const char *objip,int isenter)
 
 	int ret = 0;
 	struct messagepro pro[1] = {0};
-	pro->type = PROREWRITE;
-	prorewrite(pro)->enter = isenter;
-	memcpy(prorewrite(pro)->srcip,srcip,IPLEN);
-	memcpy(prorewrite(pro)->objip,objip,IPLEN);
+	pro->type = PRODOMAIN;
+	prodomain(pro)->enter = isenter;
+	prodomain(pro)->rewrite = 1;
+	memcpy(prodomain(pro)->srcip,srcip,IPLEN);
+	memcpy(prodomain(pro)->objip,objip,IPLEN);
 	ret = write(fd,pro,MESSLEN);
 	if (ret < 0) {
 		printf("add rewrite error\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int banip(int fd,const char *ip,int isenter)
+{
+	if (fd < 0 || !ip) {
+		return -1;
+	}
+
+	int ret = 0;
+	struct messagepro pro[1] = {0};
+	pro->type = PRODOMAIN;
+	prodomain(pro)->enter = isenter;
+	prodomain(pro)->ban = 1;
+	memcpy(prodomain(pro)->srcip,ip,IPLEN);
+	ret = write(fd,pro,MESSLEN);
+	if (ret < 0) {
+		printf("add bans error\n");
 		return -1;
 	}
 

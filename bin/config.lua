@@ -342,8 +342,19 @@ keywords = {
 	"1111122222",
 }
 
+domains = {
+	"www.baidu.com",
+	"www.sina.com.cn",
+	"www.jd.com",
+}
+
+--[[
+rewrites = {
+	{"www.cocoachina.com","www.baidu.com"},
+	{"www.china.com.cn","www.csdn.net"},
+}
+]]--
 rewrites = {
 	{"192.168.177.128","192.168.177.129"},
 	{"127.0.0.1","192.168.177.129"},
-	{"11.168.177.128","22.168.177.129"},
 }

@@ -108,6 +108,7 @@ struct hook_data
 	unsigned int iskeymod:1;
 	ngx_queue_t paths;
 	ngx_queue_t keywords;
+	ngx_queue_t bans;
 	ngx_queue_t addrs;
 	ngx_queue_t logs;
 	spinlock_t hook_lock;

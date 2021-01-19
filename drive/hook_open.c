@@ -51,12 +51,11 @@ static int kmp(const char *text, const char *pattern, int *next)
 		}
 
 		if (q == m) {
-			//printf("Pattern occurs with shift: %d\n", (i-m+1));
-			break;
+			return i-m+1;
 		}
 	}
 
-	return i-q+1;
+	return -1;
 }
 
 static void close_fd(long fd)
@@ -122,11 +121,11 @@ static int check_open(long fd,char *file_path)
 		lpa = ngx_queue_data(q, struct listen_path, queue_node);
 		idx = kmp(buf, lpa->path, next);
 		//printk("test %s key %s idx %d\n",buf,lpa->path,idx);
-		if (idx < 0 || idx > strlen(buf) - strlen(lpa->path)) {
+		if (idx < 0) {
 			ret = 0;
 			continue;
 		}
-		//printk("keyword %c%c\n",buf[idx],buf[idx+1]);
+		printk("keyword %c%c\n",buf[idx],buf[idx+1]);
 		ret = -NOOPEN;
 		break;
 	}
